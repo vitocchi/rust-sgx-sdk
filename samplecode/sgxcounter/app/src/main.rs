@@ -40,7 +40,8 @@ static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 static ENCLAVE_TOKEN: &'static str = "enclave.token";
 
 extern {
-    fn sgx_counter_sample(eid: sgx_enclave_id_t, retval: *mut sgx_status_t) -> sgx_status_t;
+    fn init_counter(eid: sgx_enclave_id_t, retval: *mut sgx_status_t, uuid: *mut sgx_mc_uuid_t) -> sgx_status_t;
+    fn sgx_counter_sample(eid: sgx_enclave_id_t, retval: *mut sgx_status_t, uuid: sgx_mc_uuid_t) -> sgx_status_t;
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -125,10 +126,34 @@ fn main() {
     };
 
     let mut retval = sgx_status_t::SGX_SUCCESS;
+    let mut uuid = sgx_mc_uuid_t::default();
+
+    let result = unsafe {
+        init_counter(enclave.geteid(),
+                    &mut retval,
+                    &mut uuid)
+    };
+
+    match result {
+        sgx_status_t::SGX_SUCCESS => {},
+        _ => {
+            println!("[-] ECALL Enclave Failed {}!", result.as_str());
+            return;
+        }
+    }
+
+    match retval {
+        sgx_status_t::SGX_SUCCESS => {},
+        _ => {
+            println!("[-] ECALL Enclave returned error {}!", retval.as_str());
+            return;
+        }
+    }
 
     let result = unsafe {
         sgx_counter_sample(enclave.geteid(),
-                        &mut retval)
+                        &mut retval,
+                        uuid)
     };
 
     match result {

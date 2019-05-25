@@ -30,14 +30,17 @@
  */
 
 enclave {
+    include "sgx_tae_service.h"
     from "sgx_tstd.edl" import *;
     from "sgx_stdio.edl" import *;
     from "sgx_backtrace.edl" import *;
     from "sgx_tae_service.edl" import *;
+    //from "sgx_types.edl" import *;
     //from "sgx_tstdc.edl" import *;
     trusted {
         /* define ECALLs here. */
 
-        public sgx_status_t sgx_counter_sample();
+        public sgx_status_t init_counter([out] sgx_mc_uuid_t* uuid);
+        public sgx_status_t sgx_counter_sample([in] sgx_mc_uuid_t* uuid);
     };
 };

@@ -45,8 +45,41 @@ use sgx_tservice::*;
 use itertools::Itertools;
 
 #[no_mangle]
-pub extern "C" fn sgx_counter_sample() -> sgx_status_t {
+pub extern "C" fn init_counter(uuid: &mut sgx_mc_uuid_t) -> sgx_status_t {
+    match rsgx_create_pse_session() {
+        Ok(_) => println!("Create PSE session done"),
+        _ => {
+            println!("Cannot create PSE session");
+            return sgx_status_t::SGX_ERROR_UNEXPECTED;
+        }
+    }
+    let mut init_val: u32 = 100;
+    let tcounter = sgxcounter::SgxMonotonicCounter::new(&mut init_val).unwrap();
 
+    for _ in 0..11 {
+        tcounter.increment().unwrap();
+        println!("value after increment = {}", tcounter.read().unwrap());
+    }
+
+    *uuid = tcounter.get_uuid().unwrap();
+
+    println!("acquired uuid = {:02X}", uuid.counter_id.iter().format(""));
+    println!("acquired nonce = {:02X}", uuid.nonce.iter().format(""));
+
+    match rsgx_close_pse_session() {
+        Ok(_) => println!("close PSE session done"),
+        _ => {
+            println!("Cannot close PSE session");
+            return sgx_status_t::SGX_ERROR_UNEXPECTED;
+        }
+    }
+    sgx_status_t::SGX_SUCCESS
+}
+
+#[no_mangle]
+pub extern "C" fn sgx_counter_sample(uuid: sgx_mc_uuid_t) -> sgx_status_t {
+
+/*
     match rsgx_create_pse_session() {
         Ok(_) => println!("Create PSE session done"),
         _ => {
@@ -74,6 +107,7 @@ pub extern "C" fn sgx_counter_sample() -> sgx_status_t {
             return sgx_status_t::SGX_ERROR_UNEXPECTED;
         }
     }
+    */
 
     // Emulate the 2nd session
     match rsgx_create_pse_session() {
